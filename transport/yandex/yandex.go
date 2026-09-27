@@ -19,7 +19,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"openflux/netbind"
 	"openflux/transport"
 	"openflux/utils"
 )
@@ -180,7 +179,7 @@ func (t *YandexDocsTransport) connectToDoc(attempt int) {
 		info, err := t.fetchDocInfo(t.url, userID)
 		if err != nil {
 			if errors.Is(err, ErrCaptchaRequired) || errors.Is(err, ErrLoginRequired) {
-				utils.Debugf("[YDOCS] fetchDocInfo needs external help: %v", err)
+				utils.Infof("[YDOCS] document authentication required: %v", err)
 				reason := "smartcaptcha"
 				if errors.Is(err, ErrLoginRequired) {
 					reason = "login"
@@ -191,7 +190,7 @@ func (t *YandexDocsTransport) connectToDoc(attempt int) {
 				t.scheduleReconnectNoCaptcha(attempt)
 				return
 			}
-			utils.Debugf("[YDOCS] fetchDocInfo failed: %v", err)
+			utils.Infof("[YDOCS] document connection failed: %v", err)
 			t.scheduleReconnect(attempt)
 			return
 		}
@@ -201,7 +200,7 @@ func (t *YandexDocsTransport) connectToDoc(attempt int) {
 		// insufficient on iOS).
 		dialer := websocket.Dialer{
 			HandshakeTimeout: 15 * time.Second,
-			NetDialContext: netbind.Wrap(&net.Dialer{
+			NetDialContext: (&net.Dialer{
 				Timeout:   10 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
@@ -219,7 +218,7 @@ func (t *YandexDocsTransport) connectToDoc(attempt int) {
 			if resp != nil {
 				status = resp.StatusCode
 			}
-			utils.Debugf("[YDOCS] WebSocket dial failed (http %d): %v", status, err)
+			utils.Infof("[YDOCS] WebSocket connection failed (http %d): %v", status, err)
 			t.scheduleReconnect(attempt)
 			return
 		}
